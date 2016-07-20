@@ -1,0 +1,51 @@
+#!/usr/local/bin/python3
+
+import argparse
+import os
+import sys
+
+blacklist = {"\u2028": 'Line seperator',
+             "\u2029": 'Paragraph seperator',
+             "\u2026": 'horizontal ellipsis',
+             "\u000D": 'Carriage return',
+             "\u2019": 'Masquerading apostrophe'}
+
+parser = argparse.ArgumentParser(description='Detect and replace characters')
+parser.add_argument('filename', default='screens.txt', nargs='?',
+                    help='a file to be cleaned up')
+parser.add_argument('--detect', dest='detect', action='store_true',
+                    help='detect blacklist characters and return (default: false)')
+
+args = parser.parse_args()
+
+def main():
+    filename = args.filename
+    with open(filename,"r+",  encoding="utf-8") as writefile:
+        lines = enumerate(writefile.readlines())
+        writefile.seek(0)
+            count = scan_replace(lines, writefile)
+        print("Replaced", count, "characters.")
+
+def scan_replace(lines):
+    count = 0
+    for i, line in lines:
+        for char in line:
+            if char in blacklist:
+                count += 1
+                msg = {'bl': blacklist[char].lower(), 'line_num': i+1}
+                if args.detect:
+                    print('Detected {bl} on line {line_num}.'.format(**msg))
+                else:
+                    if char == "\u2019":
+                        writefile.write("\u0027")
+                    elif char == "\u2026":
+                        writefile.write("\u002E\u002E\u002E")
+                    else:
+                        writefile.write("\u0020")
+                    print('Replaced {bl} on line {line_num}.'.format(**msg))
+            elif not args.detect:
+                writefile.write(char)
+    return count
+
+if __name__ == '__main__':
+    main()
